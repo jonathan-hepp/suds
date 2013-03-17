@@ -22,7 +22,6 @@ wsdl/xsd defined types.
 
 from logging import getLogger
 from suds import *
-from new import classobj
 
 log = getLogger(__name__)
 
@@ -92,25 +91,24 @@ class Factory:
     cache = {}
     
     @classmethod
-    def subclass(cls, name, bases, dict={}):
+    def subclass(cls, name, bases, dic={}):
         if not isinstance(bases, tuple):
-            bases = (bases,)
-        name = name.encode('utf-8')
+            bases = (bases,)        
         key = '.'.join((name, str(bases)))
         subclass = cls.cache.get(key)
         if subclass is None:
-            subclass = classobj(name, bases, dict)
+            subclass = type(name, bases, dic)
             cls.cache[key] = subclass
         return subclass
     
     @classmethod
-    def object(cls, classname=None, dict={}):
+    def object(cls, classname=None, dic={}):
         if classname is not None:
             subclass = cls.subclass(classname, Object)
             inst = subclass()
         else:
             inst = Object()
-        for a in dict.items():
+        for a in list(dic.items()):
             setattr(inst, a[0], a[1])
         return inst
     
@@ -124,7 +122,7 @@ class Factory:
         return subclass(value)
 
 
-class Object:
+class Object(UnicodeMixin):
 
     def __init__(self):
         self.__keylist__ = []
@@ -146,7 +144,7 @@ class Object:
                 self.__keylist__.remove(name)
         except:
             cls = self.__class__.__name__
-            raise AttributeError, "%s has no attribute '%s'" % (cls, name)
+            raise AttributeError("%s has no attribute '%s'" % (cls, name))
 
     def __getitem__(self, name):
         if isinstance(name, int):
@@ -167,9 +165,6 @@ class Object:
     
     def __repr__(self):
         return str(self)
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
     
     def __unicode__(self):
         return self.__printer__.tostr(self)
@@ -182,7 +177,7 @@ class Iter:
         self.keylist = self.__keylist(sobject)
         self.index = 0
 
-    def next(self):
+    def __next__(self):
         keylist = self.keylist
         nkeys = len(self.keylist)
         while self.index < nkeys:
@@ -253,33 +248,33 @@ class Printer:
     @classmethod
     def indent(cls, n): return '%*s'%(n*3,' ')
 
-    def tostr(self, object, indent=-2):
+    def tostr(self, obj, indent=-2):
         """ get s string representation of object """
         history = []
-        return self.process(object, history, indent)
+        return self.process(obj, history, indent)
     
-    def process(self, object, h, n=0, nl=False):
+    def process(self, obj, h, n=0, nl=False):
         """ print object using the specified indent (n) and newline (nl). """
-        if object is None:
+        if obj is None:
             return 'None'
-        if isinstance(object, Object):
-            if len(object) == 0:
+        if isinstance(obj, Object):
+            if len(obj) == 0:
                 return '<empty>'
             else:
-                return self.print_object(object, h, n+2, nl)
-        if isinstance(object, dict):
-            if len(object) == 0:
+                return self.print_object(obj, h, n+2, nl)
+        if isinstance(obj, dict):
+            if len(obj) == 0:
                 return '<empty>'
             else:
-                return self.print_dictionary(object, h, n+2, nl)
-        if isinstance(object, (list,tuple)):
-            if len(object) == 0:
+                return self.print_dictionary(obj, h, n+2, nl)
+        if isinstance(obj, (list,tuple)):
+            if len(obj) == 0:
                 return '<empty>'
             else:
-                return self.print_collection(object, h, n+2)
-        if isinstance(object, basestring):
-            return '"%s"' % tostr(object)
-        return '%s' % tostr(object)
+                return self.print_collection(obj, h, n+2)
+        if isinstance(obj, str):
+            return '"%s"' % tostr(obj)
+        return '%s' % tostr(obj)
     
     def print_object(self, d, h, n, nl=False):
         """ print complex using the specified indent (n) and newline (nl). """
@@ -332,7 +327,7 @@ class Printer:
             s.append('\n')
             s.append(self.indent(n))
         s.append('{')
-        for item in d.items():
+        for item in list(d.items()):
             s.append('\n')
             s.append(self.indent(n+1))
             if isinstance(item[1], (list,tuple)):            

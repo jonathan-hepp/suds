@@ -26,7 +26,7 @@ import sys
 # Project properties
 #
 
-__version__ = '0.4.unomena.1'
+__version__ = '0.4'
 __build__="GA R699-20100913"
 
 #
@@ -92,42 +92,42 @@ class Repr:
 # Utility
 #
 
-def tostr(object, encoding=None):
+def tostr(obj, encoding=None):
     """ get a unicode safe string representation of an object """
-    if isinstance(object, basestring):
+    if isinstance(obj, str):
         if encoding is None:
-            return object
+            return obj
         else:
-            return object.encode(encoding)
-    if isinstance(object, tuple):
+            return obj.encode(encoding)
+    if isinstance(obj, tuple):
         s = ['(']
-        for item in object:
-            if isinstance(item, basestring):
+        for item in obj:
+            if isinstance(item, str):
                 s.append(item)
             else:
                 s.append(tostr(item))
             s.append(', ')
         s.append(')')
         return ''.join(s)
-    if isinstance(object, list):
+    if isinstance(obj, list):
         s = ['[']
-        for item in object:
-            if isinstance(item, basestring):
+        for item in obj:
+            if isinstance(item, str):
                 s.append(item)
             else:
                 s.append(tostr(item))
             s.append(', ')
         s.append(']')
         return ''.join(s)
-    if isinstance(object, dict):
+    if isinstance(obj, dict):
         s = ['{']
-        for item in object.items():
-            if isinstance(item[0], basestring):
+        for item in list(obj.items()):
+            if isinstance(item[0], str):
                 s.append(item[0])
             else:
                 s.append(tostr(item[0]))
             s.append(' = ')
-            if isinstance(item[1], basestring):
+            if isinstance(item[1], str):
                 s.append(item[1])
             else:
                 s.append(tostr(item[1]))
@@ -135,9 +135,9 @@ def tostr(object, encoding=None):
         s.append('}')
         return ''.join(s)
     try:
-        return unicode(object)
+        return str(obj)
     except:
-        return str(object)
+        return str(obj)
     
 class null:
     """
@@ -151,4 +151,23 @@ def objid(obj):
         +':'+hex(id(obj))
 
 
-import client
+class UnicodeMixin(object):
+    if sys.version_info >= (3, 0):
+        # for Python 3, __str__ and __unicode__ should be identical
+        __str__ = lambda x: x.__unicode__()
+    else:
+        __str__ = lambda x: str(x).encode('utf-8')
+
+if sys.version_info >= (3, 0):
+    def str2bytes(s):
+        if isinstance(s, bytes):
+            return s
+        return s.encode('utf-8')
+    def bytes2str(s):
+        if isinstance(s, str):
+            return s
+        return s.decode('utf-8')
+else:
+    # for python 2 bytes and str are the same
+    str2bytes = lambda x: x
+    bytes2str = lambda x: x

@@ -26,10 +26,10 @@ from suds.sax.parser import Parser
 from suds.sax.element import Element
 from datetime import datetime as dt
 from datetime import timedelta
-from cStringIO import StringIO
+from io import StringIO
 from logging import getLogger
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except:
     import pickle
 
@@ -41,7 +41,7 @@ class Cache:
     An object object cache.
     """
 
-    def get(self, id):
+    def get(self, cacheid):
         """
         Get a object from the cache by ID.
         @param id: The object ID.
@@ -51,7 +51,7 @@ class Cache:
         """
         raise Exception('not-implemented')
     
-    def getf(self, id):
+    def getf(self, cacheid):
         """
         Get a object from the cache by ID.
         @param id: The object ID.
@@ -61,7 +61,7 @@ class Cache:
         """
         raise Exception('not-implemented')
     
-    def put(self, id, object):
+    def put(self, cacheid, cobject):
         """
         Put a object into the cache.
         @param id: The object ID.
@@ -71,7 +71,7 @@ class Cache:
         """
         raise Exception('not-implemented')
     
-    def putf(self, id, fp):
+    def putf(self, cacheid, fp):
         """
         Write a fp into the cache.
         @param id: The object ID.
@@ -81,7 +81,7 @@ class Cache:
         """
         raise Exception('not-implemented')
     
-    def purge(self, id):
+    def purge(self, cacheid):
         """
         Purge a object from the cache by id.
         @param id: A object ID.
@@ -101,16 +101,16 @@ class NoCache(Cache):
     The passthru object cache.
     """
     
-    def get(self, id):
+    def get(self, cacheid):
         return None
     
-    def getf(self, id):
+    def getf(self, cacheid):
         return None
     
-    def put(self, id, object):
+    def put(self, cacheid, cobject):
         pass
 
-    def putf(self, id, fp):
+    def putf(self, cacheid, fp):
         pass
 
 
@@ -162,7 +162,7 @@ class FileCache(Cache):
         @type duration: {unit:value}
         """
         if len(duration) == 1:
-            arg = duration.items()[0]
+            arg = list(duration.items())[0]
             if not arg[0] in self.units:
                 raise Exception('must be: %s' % str(self.units))
             self.duration = arg
@@ -187,10 +187,10 @@ class FileCache(Cache):
             log.debug(self.location, exc_info=1)
         return self
     
-    def put(self, id, bfr):
+    def put(self, cacheid, bfr):
         try:
-            fn = self.__fn(id)
-            f = self.open(fn, 'w')
+            fn = self.__fn(cacheid)
+            f = self.open(fn, 'w', encoding="utf8")
             f.write(bfr)
             f.close()
             return bfr
@@ -198,30 +198,30 @@ class FileCache(Cache):
             log.debug(id, exc_info=1)
             return bfr
         
-    def putf(self, id, fp):
+    def putf(self, cacheid, fp):
         try:
-            fn = self.__fn(id)
+            fn = self.__fn(cacheid)
             f = self.open(fn, 'w')
             f.write(fp.read())
             fp.close()
             f.close()
             return open(fn)
         except:
-            log.debug(id, exc_info=1)
+            log.debug(cacheid, exc_info=1)
             return fp
         
-    def get(self, id):
+    def get(self, cacheid):
         try:
-            f = self.getf(id)
+            f = self.getf(cacheid)
             bfr = f.read()
             f.close()
             return bfr
         except:
             pass
     
-    def getf(self, id):
+    def getf(self, cacheid):
         try:
-            fn = self.__fn(id)
+            fn = self.__fn(cacheid)
             self.validate(fn)
             return self.open(fn)
         except:
@@ -250,8 +250,8 @@ class FileCache(Cache):
                 log.debug('deleted: %s', fn)
                 os.remove(os.path.join(self.location, fn))
                 
-    def purge(self, id):
-        fn = self.__fn(id)
+    def purge(self, cacheid):
+        fn = self.__fn(cacheid)
         try:
             os.remove(fn)
         except:
@@ -279,8 +279,8 @@ class FileCache(Cache):
             f.write(suds.__version__)
             f.close()        
     
-    def __fn(self, id):
-        name = id
+    def __fn(self, cacheid):
+        name = cacheid
         suffix = self.fnsuffix()
         fn = '%s-%s.%s' % (self.fnprefix, name, suffix)
         return os.path.join(self.location, fn)
@@ -294,19 +294,19 @@ class DocumentCache(FileCache):
     def fnsuffix(self):
         return 'xml'
     
-    def get(self, id):
+    def get(self, cacheid):
         try:
-            fp = FileCache.getf(self, id)
+            fp = FileCache.getf(self, cacheid)
             if fp is None:
                 return None
             p = Parser()
             return p.parse(fp)
         except:
-            FileCache.purge(self, id)
+            FileCache.purge(self, cacheid)
     
-    def put(self, id, object):
+    def put(self, cacheid, cobject):
         if isinstance(object, Element):
-            FileCache.put(self, id, str(object))
+            FileCache.put(self, cacheid, str(cobject))
         return object
 
 
@@ -321,17 +321,17 @@ class ObjectCache(FileCache):
     def fnsuffix(self):
         return 'px'
     
-    def get(self, id):
+    def get(self, cacheid):
         try:
-            fp = FileCache.getf(self, id)
+            fp = FileCache.getf(self, cacheid)
             if fp is None:
                 return None
             else:
                 return pickle.load(fp)
         except:
-            FileCache.purge(self, id)
+            FileCache.purge(self, cacheid)
     
-    def put(self, id, object):
-        bfr = pickle.dumps(object, self.protocol)
-        FileCache.put(self, id, bfr)
-        return object
+    def put(self, cacheid, cobject):
+        bfr = pickle.dumps(cobject, self.protocol)
+        FileCache.put(self, cacheid, bfr)
+        return cobject

@@ -73,11 +73,11 @@ class DocumentReader(Reader):
         @rtype: I{Document}
         """
         cache = self.cache()
-        id = self.mangle(url, 'document')
-        d = cache.get(id)
+        cacheid = self.mangle(url, 'document')
+        d = cache.get(cacheid)
         if d is None:
             d = self.download(url)
-            cache.put(id, d)
+            cache.put(cacheid, d)
         self.plugins.document.parsed(url=url, document=d.root())
         return d
     
@@ -96,7 +96,7 @@ class DocumentReader(Reader):
         content = fp.read()
         fp.close()
         ctx = self.plugins.document.loaded(url=url, document=content)
-        content = ctx.document 
+        content = ctx.document.decode() 
         sax = Parser()
         return sax.parse(string=content)
     
@@ -146,11 +146,11 @@ class DefinitionsReader(Reader):
         @rtype: I{Definitions}
         """
         cache = self.cache()
-        id = self.mangle(url, 'wsdl')
-        d = cache.get(id)
+        cacheid = self.mangle(url, 'wsdl')
+        d = cache.get(cacheid)
         if d is None:
             d = self.fn(url, self.options)
-            cache.put(id, d)
+            cache.put(cacheid, d)
         else:
             d.options = self.options
             for imp in d.imports:

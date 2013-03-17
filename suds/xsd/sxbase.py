@@ -28,7 +28,7 @@ from suds.sax import Namespace
 log = getLogger(__name__)
 
 
-class SchemaObject(object):
+class SchemaObject(UnicodeMixin):
     """
     A schema object is an extension to object object with
     with schema awareness.
@@ -49,7 +49,7 @@ class SchemaObject(object):
     """
 
     @classmethod
-    def prepend(cls, d, s, filter=Filter()):
+    def prepend(cls, d, s, mfilter=Filter()):
         """
         Prepend schema object's from B{s}ource list to 
         the B{d}estination list while applying the filter.
@@ -62,12 +62,12 @@ class SchemaObject(object):
         """
         i = 0
         for x in s:
-            if x in filter:
+            if x in mfilter:
                 d.insert(i, x)
                 i += 1
     
     @classmethod
-    def append(cls, d, s, filter=Filter()):
+    def append(cls, d, s, mfilter=Filter()):
         """
         Append schema object's from B{s}ource list to 
         the B{d}estination list while applying the filter.
@@ -79,7 +79,7 @@ class SchemaObject(object):
         @type filter: L{Filter}
         """
         for item in s:
-            if item in filter:
+            if item in mfilter:
                 d.append(item)
 
     def __init__(self, schema, root):
@@ -104,7 +104,7 @@ class SchemaObject(object):
         self.rawchildren = []
         self.cache = {}
         
-    def attributes(self, filter=Filter()):
+    def attributes(self, mfilter=Filter()):
         """
         Get only the attribute content.
         @param filter: A filter to constrain the result.
@@ -114,11 +114,11 @@ class SchemaObject(object):
         """
         result = []
         for child, ancestry in self:
-            if child.isattr() and child in filter:
+            if child.isattr() and child in mfilter:
                 result.append((child, ancestry))
         return result
                 
-    def children(self, filter=Filter()):
+    def children(self, mfilter=Filter()):
         """
         Get only the I{direct} or non-attribute content.
         @param filter: A filter to constrain the result.
@@ -128,7 +128,7 @@ class SchemaObject(object):
         """
         result = []
         for child, ancestry in self:
-            if not child.isattr() and child in filter:
+            if not child.isattr() and child in mfilter:
                 result.append((child, ancestry))
         return result
                 
@@ -180,13 +180,13 @@ class SchemaObject(object):
         @return: True if unbounded, else False.
         @rtype: boolean
         """
-        max = self.max
-        if max is None:
-            max = '1'
-        if max.isdigit():
-            return (int(max) > 1)
+        mmax = self.max
+        if mmax is None:
+            mmax = '1'
+        if mmax.isdigit():
+            return (int(mmax) > 1)
         else:
-            return ( max == 'unbounded' )
+            return ( mmax == 'unbounded' )
     
     def optional(self):
         """
@@ -194,10 +194,10 @@ class SchemaObject(object):
         @return: True if optional, else False
         @rtype: boolean
         """
-        min = self.min
-        if min is None:
-            min = '1'
-        return ( min == '0' )
+        mmin = self.min
+        if mmin is None:
+            mmin = '1'
+        return ( mmin == '0' )
     
     def required(self):
         """
@@ -400,7 +400,7 @@ class SchemaObject(object):
             setattr(self, n, v)
             
             
-    def content(self, collection=None, filter=Filter(), history=None):
+    def content(self, collection=None, mfilter=Filter(), history=None):
         """
         Get a I{flattened} list of this nodes contents.
         @param collection: A list to fill.
@@ -419,10 +419,10 @@ class SchemaObject(object):
         if self in history:
             return collection
         history.append(self)
-        if self in filter:
+        if self in mfilter:
             collection.append(self)
         for c in self.rawchildren:
-            c.content(collection, filter, history[:])
+            c.content(collection, mfilter, history[:])
         return collection
     
     def str(self, indent=0, history=None):
@@ -468,12 +468,9 @@ class SchemaObject(object):
         @rtype: [str,...]
         """
         return ()
-        
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-            
+    
     def __unicode__(self):
-        return unicode(self.str())
+        return str(self.str())
     
     def __repr__(self):
         s = []
@@ -525,7 +522,7 @@ class Iter:
             self.items = sx.rawchildren
             self.index = 0
             
-        def next(self):
+        def __next__(self):
             """
             Get the I{next} item in the frame's collection.
             @return: The next item or None
@@ -576,7 +573,7 @@ class Iter:
         else:
             raise StopIteration()
     
-    def next(self):
+    def __next__(self):
         """
         Get the next item.
         @return: A tuple: the next (child, ancestry).
@@ -585,15 +582,15 @@ class Iter:
         """
         frame = self.top()
         while True:
-            result = frame.next()
+            result = next(frame)
             if result is None:
                 self.pop()
-                return self.next()
+                return next(self)
             if isinstance(result, Content):
                 ancestry = [f.sx for f in self.stack]
                 return (result, ancestry)
             self.push(result)
-            return self.next()
+            return next(self)
     
     def __iter__(self):
         return self
@@ -651,7 +648,7 @@ class NodeFinder:
         self.matcher = matcher
         self.limit = limit
         
-    def find(self, node, list):
+    def find(self, node, mlist):
         """
         Traverse the tree looking for matches.
         @param node: A node to match on.
@@ -660,10 +657,10 @@ class NodeFinder:
         @type list: list
         """
         if self.matcher.match(node):
-            list.append(node)
+            mlist.append(node)
             self.limit -= 1
             if self.limit == 0:
                 return
         for c in node.rawchildren:
-            self.find(c, list)
+            self.find(c, mlist)
         return self

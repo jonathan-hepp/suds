@@ -38,7 +38,7 @@ from logging import getLogger
 log = getLogger(__name__)
 
 
-class SchemaCollection:
+class SchemaCollection(UnicodeMixin):
     """
     A collection of schema objects.  This class is needed because WSDLs 
     may contain more then one <schema/> node.
@@ -105,7 +105,7 @@ class SchemaCollection:
         @return: self
         @rtype: L{SchemaCollection}
         """
-        namespaces = self.namespaces.keys()
+        namespaces = list(self.namespaces.keys())
         for s in self.children:
             for ns in namespaces:
                 tns = s.root.get('targetNamespace')
@@ -147,9 +147,6 @@ class SchemaCollection:
     def __len__(self):
         return len(self.children)
     
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-    
     def __unicode__(self):
         result = ['\nschema collection']
         for s in self.children:
@@ -157,7 +154,7 @@ class SchemaCollection:
         return '\n'.join(result)
 
 
-class Schema:
+class Schema(UnicodeMixin):
     """
     The schema is an objectification of a <schema/> (xsd) definition.
     It provides inspection, lookup and type resolution.
@@ -265,27 +262,27 @@ class Schema:
         @returns: self
         @rtype: L{Schema} 
         """
-        for item in schema.attributes.items():
+        for item in list(schema.attributes.items()):
             if item[0] in self.attributes:
                 continue
             self.all.append(item[1])
             self.attributes[item[0]] = item[1]
-        for item in schema.elements.items():
+        for item in list(schema.elements.items()):
             if item[0] in self.elements:
                 continue
             self.all.append(item[1])
             self.elements[item[0]] = item[1]
-        for item in schema.types.items():
+        for item in list(schema.types.items()):
             if item[0] in self.types:
                 continue
             self.all.append(item[1])
             self.types[item[0]] = item[1]
-        for item in schema.groups.items():
+        for item in list(schema.groups.items()):
             if item[0] in self.groups:
                 continue
             self.all.append(item[1])
             self.groups[item[0]] = item[1]
-        for item in schema.agrps.items():
+        for item in list(schema.agrps.items()):
             if item[0] in self.agrps:
                 continue
             self.all.append(item[1])
@@ -313,12 +310,12 @@ class Schema:
         """
         Instruct all children to perform dereferencing.
         """
-        all = []
+        all_ = []
         indexes = {}
         for child in self.children:
-            child.content(all)
+            child.content(all_)
         deplist = DepList()
-        for x in all:
+        for x in all_:
             x.qualify()
             midx, deps = x.dependencies()
             item = (x, tuple(deps))
@@ -411,9 +408,6 @@ class Schema:
     def __repr__(self):
         myrep = '<%s tns="%s"/>' % (self.id, self.tns[1])
         return myrep.encode('utf-8')
-    
-    def __str__(self):
-        return unicode(self).encode('utf-8')
     
     def __unicode__(self):
         return self.str()

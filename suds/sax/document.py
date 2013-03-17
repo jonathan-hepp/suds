@@ -44,9 +44,8 @@ class Document(Element):
     def str(self):
         s = []
         s.append(self.DECL)
-        if self.root():
-            s.append('\n')
-            s.append(self.root().str())
+        s.append('\n')
+        s.append(self.root().str())
         return ''.join(s)
     
     def plain(self):
@@ -54,9 +53,6 @@ class Document(Element):
         s.append(self.DECL)
         s.append(self.root().plain())
         return ''.join(s)
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
     
     def __unicode__(self):
         return self.str()
