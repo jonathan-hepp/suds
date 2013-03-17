@@ -1,3 +1,5 @@
+Python suds library with Python 3 support
+
 NOTE
 
 This is a fork of the suds project to add Python 3 support.
