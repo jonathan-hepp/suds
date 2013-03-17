@@ -20,6 +20,10 @@ import sys
 import suds
 from setuptools import setup, find_packages
 
+extra = {}
+if sys.version_info >= (3,0):
+    extra['use_2to3'] = True
+
 setup(
     name="suds",
     version=suds.__version__,
@@ -30,4 +34,5 @@ setup(
     maintainer_email="jortel@redhat.com",
     packages=find_packages(exclude=['tests']),
     url="https://fedorahosted.org/suds",
+    **extra
 )
